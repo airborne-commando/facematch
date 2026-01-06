@@ -17,6 +17,10 @@ Also use this guide as well [OPSEC OSINT Tools](https://github.com/airborne-comm
 	pip3 install git+https://github.com/ageitgey/face_recognition_models /
 	pip3 install --upgrade pip setuptools wheel /
 	pip3 install dlib numpy pillow requests face_recognition 
+
+Or with requirements.txt
+
+	pip3 install -r requirements.txt
 	
 to run simply edit the python file lines with the found images:
 
