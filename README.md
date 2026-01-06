@@ -32,3 +32,8 @@ to run simply edit the python file lines with the found images:
     ]
 
 Then run hash.py >> hashes.txt
+
+
+May also use hash_advanced
+
+	pip install pip install requests pillow numpy face_recognition beautifulsoup4 tldextract fake-useragent
