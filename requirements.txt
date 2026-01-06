@@ -1,0 +1,9 @@
+git+https://github.com/ageitgey/face_recognition_models
+pip>=21.0
+setuptools>=50.0
+wheel>=0.36.0
+dlib
+numpy
+pillow
+requests
+face_recognition
