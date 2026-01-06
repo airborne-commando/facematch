@@ -13,8 +13,9 @@ Seeing how facecheck.id is no longer working (you need to pay), I figured the be
 	python3.10 -m venv venv /
 	source venv/bin/activate /
 	pip3 install git+https://github.com/ageitgey/face_recognition_models /
-	pip3 install --upgrade pip setuptools wheel /
-
+	pip3 install --upgrade pip setuptools wheel 
+	pip3 install dlib numpy pillow requests face_recognition 
+	
 to run simply edit the python file lines with the found images:
 
 
