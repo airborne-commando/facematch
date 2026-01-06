@@ -7,7 +7,7 @@ Seeing how facecheck.id is no longer working (you need to pay), I figured the be
 * A GPU
 * Python 3+ / pip
 * cmake
-* 
+
 # Install
 
 	python3.10 -m venv venv /
