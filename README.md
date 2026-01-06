@@ -41,3 +41,6 @@ May also use `hash_advanced.py`
 Simply run `hash_advanced.py` and follow the prompts.
 
 Feel free to conribute and fork for the web-list directly into the python script so it may use all the sites, excluding API's perhaps?
+
+
+Also note that there can be false positives so don't use this alone.
