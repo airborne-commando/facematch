@@ -2,6 +2,8 @@
 
 Seeing how facecheck.id is no longer working (you need to pay), I figured the best other option is to compare images between sites for biometric purposes.
 
+Also use this guide as well [OPSEC OSINT Tools](https://github.com/airborne-commando/OPSEC-OSINT-Tools)
+
 ***Requirenents***
 
 * A GPU
