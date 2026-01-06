@@ -34,8 +34,10 @@ to run simply edit the python file lines with the found images:
 Then run hash.py >> hashes.txt
 
 
-May also use hash_advanced
+May also use `hash_advanced.py`
 
 	pip install requests pillow numpy face_recognition beautifulsoup4 tldextract fake-useragent
+
+Simply run `hash_advanced.py` and follow the prompts.
 
 Feel free to conribute and fork for the web-list directly into the python script so it may use all the sites, excluding API's perhaps?
