@@ -37,3 +37,5 @@ Then run hash.py >> hashes.txt
 May also use hash_advanced
 
 	pip install requests pillow numpy face_recognition beautifulsoup4 tldextract fake-useragent
+
+Feel free to conribute and fork for the web-list directly into the python script so it may use all the sites, excluding API's perhaps?
