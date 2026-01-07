@@ -39,140 +39,382 @@ class CrawlerConfig:
     MAX_RETRIES = 2
     RATE_LIMIT_DELAY = 1.0
     VERBOSE = True
+    PROFILE_TEMPLATES_FILE = "profile_templates.json"
 
 
-# ================== ENHANCED PROFILE TEMPLATES ==================
+# ================== LOAD PROFILE TEMPLATES FROM JSON ==================
 
-PROFILE_TEMPLATES = {
-    # Tech/Developer Communities
-    "github": {
-        "url": "https://github.com/{}",
-        "check_method": "github_check",
-        "avatar_selector": "img.avatar",
-        "requires_javascript": False,
-        "platform": "github"
-    },
-    "stackoverflow": {
-        "url": "https://stackoverflow.com/users/{}",
-        "check_method": "stackoverflow_check",
-        "avatar_selector": ".avatar img",
-        "requires_javascript": False,
-        "platform": "stackoverflow"
-    },
-    "gitlab": {
-        "url": "https://gitlab.com/{}",
-        "check_method": "gitlab_check",
-        "avatar_selector": ".user-avatar img",
-        "requires_javascript": False,
-        "platform": "gitlab"
-    },
-    
-    # Social Media (easier to scrape)
-    "twitter": {
-        "url": "https://twitter.com/{}",
-        "check_method": "twitter_check",
-        "avatar_selector": "img.css-9pa8cd",
-        "requires_javascript": True,  # Twitter uses heavy JS
-        "platform": "twitter"
-    },
-    "instagram": {
-        "url": "https://www.instagram.com/{}/",
-        "check_method": "instagram_check",
-        "avatar_selector": "img._aadp",
-        "requires_javascript": True,
-        "platform": "instagram"
-    },
-    "reddit": {
-        "url": "https://www.reddit.com/user/{}",
-        "check_method": "reddit_check",
-        "avatar_selector": "img._3JHAesTjqoW_RWJXOGMNq2",
-        "requires_javascript": False,
-        "platform": "reddit"
-    },
-    
-    # Creative/Portfolio
-    "artstation": {
-        "url": "https://www.artstation.com/{}",
-        "check_method": "artstation_check",
-        "avatar_selector": ".profile-image img",
-        "requires_javascript": False,
-        "platform": "artstation"
-    },
-    
-    # Easy to check (return proper 404s)
-    "aboutme": {
-        "url": "https://about.me/{}",
-        "check_method": "status_code",
-        "avatar_selector": ".profile_photo img",
-        "requires_javascript": False,
-        "platform": "aboutme"
-    },
-    "deviantart": {
-        "url": "https://www.deviantart.com/{}",
-        "check_method": "deviantart_check",
-        "avatar_selector": ".avatar img",
-        "requires_javascript": False,
-        "platform": "deviantart"
-    },
-    "flickr": {
-        "url": "https://www.flickr.com/people/{}",
-        "check_method": "flickr_check",
-        "avatar_selector": ".avatar img",
-        "requires_javascript": False,
-        "platform": "flickr"
-    },
-    "500px": {
-        "url": "https://500px.com/p/{}",
-        "check_method": "500px_check",
-        "avatar_selector": ".avatar img",
-        "requires_javascript": False,
-        "platform": "500px"
-    },
-    
-    # From your list
-    "1337x": {
-        "url": "https://www.1337x.to/user/{}",
-        "check_method": "status_code",
-        "avatar_selector": "img.avatar",
-        "requires_javascript": False,
-        "platform": "1337x"
-    },
-    "7cups": {
-        "url": "https://www.7cups.com/@{}",
-        "check_method": "status_code",
-        "avatar_selector": ".avatar img",
-        "requires_javascript": False,
-        "platform": "7cups"
-    },
-    "archive_org": {
-        "url": "https://archive.org/details/@{}",
-        "check_method": "status_code",
-        "avatar_selector": "img.user-avatar",
-        "requires_javascript": False,
-        "platform": "archive_org"
-    },
-    "arduino": {
-        "url": "https://forum.arduino.cc/u/{}/summary",
-        "check_method": "status_code",
-        "avatar_selector": "img.avatar",
-        "requires_javascript": False,
-        "platform": "arduino"
-    },
-    "bandcamp": {
-        "url": "https://bandcamp.com/{}",
-        "check_method": "bandcamp_check",
-        "avatar_selector": "#profile-image img",
-        "requires_javascript": False,
-        "platform": "bandcamp"
-    },
-    "keybase": {
-        "url": "https://keybase.io/{}",
-        "check_method": "keybase_check",
-        "avatar_selector": "img.avatar",
-        "requires_javascript": False,
-        "platform": "keybase"
-    },
+def load_profile_templates(filename: str = "profile_templates.json") -> Dict[str, Any]:
+    """
+    Load profile templates from a JSON file.
+    If file doesn't exist, create it with default templates.
+    """
+    default_templates = {
+  "github": {
+    "url": "https://github.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": "img.avatar",
+    "requires_javascript": False,
+    "platform": "github",
+    "category": "Tech/Developer Communities",
+    "enabled": True,
+    "priority": 1
+  },
+  "stackoverflow": {
+    "url": "https://stackoverflow.com/users/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": False,
+    "platform": "stackoverflow",
+    "category": "Tech/Developer Communities",
+    "enabled": True,
+    "priority": 1
+  },
+  "gitlab": {
+    "url": "https://gitlab.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".user-avatar img",
+    "requires_javascript": False,
+    "platform": "gitlab",
+    "category": "Tech/Developer Communities",
+    "enabled": True,
+    "priority": 1
+  },
+  "twitter": {
+    "url": "https://twitter.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": "img[alt*='profile']",
+    "requires_javascript": True,
+    "platform": "twitter",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 1
+  },
+  "instagram": {
+    "url": "https://www.instagram.com/{}/",
+    "check_method": "status_code",
+    "avatar_selector": "header img",
+    "requires_javascript": True,
+    "platform": "instagram",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 1
+  },
+  "facebook": {
+    "url": "https://www.facebook.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": "img.profile-pic",
+    "requires_javascript": True,
+    "platform": "facebook",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 1
+  },
+  "linkedin": {
+    "url": "https://www.linkedin.com/in/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-photo img",
+    "requires_javascript": True,
+    "platform": "linkedin",
+    "category": "Professional Networking",
+    "enabled": True,
+    "priority": 1
+  },
+  "tiktok": {
+    "url": "https://www.tiktok.com/@{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": True,
+    "platform": "tiktok",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 1
+  },
+  "snapchat": {
+    "url": "https://www.snapchat.com/add/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".user-avatar img",
+    "requires_javascript": True,
+    "platform": "snapchat",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 2
+  },
+  "pinterest": {
+    "url": "https://www.pinterest.com/{}/",
+    "check_method": "status_code",
+    "avatar_selector": ".profileAvatar img",
+    "requires_javascript": True,
+    "platform": "pinterest",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 2
+  },
+  "youtube": {
+    "url": "https://www.youtube.com/@{}",
+    "check_method": "status_code",
+    "avatar_selector": "#avatar img",
+    "requires_javascript": True,
+    "platform": "youtube",
+    "category": "Video Sharing",
+    "enabled": True,
+    "priority": 1
+  },
+  "twitch": {
+    "url": "https://www.twitch.tv/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-badge img",
+    "requires_javascript": True,
+    "platform": "twitch",
+    "category": "Streaming",
+    "enabled": True,
+    "priority": 2
+  },
+  "reddit": {
+    "url": "https://www.reddit.com/user/{}",
+    "check_method": "status_code",
+    "avatar_selector": "img.user-profile-image",
+    "requires_javascript": False,
+    "platform": "reddit",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 1
+  },
+  "discord": {
+    "url": "https://discord.com/users/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar-3tSjgd",
+    "requires_javascript": True,
+    "platform": "discord",
+    "category": "Social Media",
+    "enabled": True,
+    "priority": 2
+  },
+  "medium": {
+    "url": "https://medium.com/@{}",
+    "check_method": "status_code",
+    "avatar_selector": ".ds-avatar img",
+    "requires_javascript": True,
+    "platform": "medium",
+    "category": "Publishing",
+    "enabled": True,
+    "priority": 1
+  },
+  "onlyfans": {
+    "url": "https://onlyfans.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-picture img",
+    "requires_javascript": True,
+    "platform": "onlyfans",
+    "category": "Adult Content",
+    "enabled": True,
+    "priority": 2
+  },
+  "pornhub": {
+    "url": "https://www.pornhub.com/users/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": False,
+    "platform": "pornhub",
+    "category": "Adult Content",
+    "enabled": True,
+    "priority": 3
+  },
+  "xvideos": {
+    "url": "https://www.xvideos.com/profiles/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": False,
+    "platform": "xvideos",
+    "category": "Adult Content",
+    "enabled": True,
+    "priority": 3
+  },
+  "linktree": {
+    "url": "https://linktr.ee/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-img img",
+    "requires_javascript": False,
+    "platform": "linktree",
+    "category": "Link Aggregation",
+    "enabled": True,
+    "priority": 1
+  },
+  "carrd": {
+    "url": "https://{}.carrd.co",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-avatar img",
+    "requires_javascript": False,
+    "platform": "carrd",
+    "category": "Link Aggregation",
+    "enabled": True,
+    "priority": 2
+  },
+  "paypal": {
+    "url": "https://paypal.me/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-image img",
+    "requires_javascript": False,
+    "platform": "paypal",
+    "category": "Payment Services",
+    "enabled": True,
+    "priority": 2
+  },
+  "cashapp": {
+    "url": "https://cash.app/${}",
+    "check_method": "status_code",
+    "avatar_selector": ".user-avatar img",
+    "requires_javascript": True,
+    "platform": "cashapp",
+    "category": "Payment Services",
+    "enabled": True,
+    "priority": 2
+  },
+  "venmo": {
+    "url": "https://venmo.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-pic img",
+    "requires_javascript": True,
+    "platform": "venmo",
+    "category": "Payment Services",
+    "enabled": True,
+    "priority": 2
+  },
+  "steam": {
+    "url": "https://steamcommunity.com/id/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".playerAvatar img",
+    "requires_javascript": False,
+    "platform": "steam",
+    "category": "Gaming",
+    "enabled": True,
+    "priority": 2
+  },
+  "roblox": {
+    "url": "https://www.roblox.com/users/{}/profile",
+    "check_method": "status_code",
+    "avatar_selector": ".thumbnail img",
+    "requires_javascript": True,
+    "platform": "roblox",
+    "category": "Gaming",
+    "enabled": True,
+    "priority": 2
+  },
+  "soundcloud": {
+    "url": "https://soundcloud.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".userImage img",
+    "requires_javascript": True,
+    "platform": "soundcloud",
+    "category": "Music",
+    "enabled": True,
+    "priority": 2
+  },
+  "spotify": {
+    "url": "https://open.spotify.com/user/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".user-image img",
+    "requires_javascript": True,
+    "platform": "spotify",
+    "category": "Music",
+    "enabled": True,
+    "priority": 2
+  },
+  "artstation": {
+    "url": "https://www.artstation.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-image img",
+    "requires_javascript": False,
+    "platform": "artstation",
+    "category": "Creative/Portfolio",
+    "enabled": True,
+    "priority": 1
+  },
+  "deviantart": {
+    "url": "https://www.deviantart.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": False,
+    "platform": "deviantart",
+    "category": "Creative/Portfolio",
+    "enabled": True,
+    "priority": 2
+  },
+  "behance": {
+    "url": "https://www.behance.net/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".profile-image img",
+    "requires_javascript": False,
+    "platform": "behance",
+    "category": "Creative/Portfolio",
+    "enabled": True,
+    "priority": 1
+  },
+  "dribbble": {
+    "url": "https://dribbble.com/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": True,
+    "platform": "dribbble",
+    "category": "Creative/Portfolio",
+    "enabled": True,
+    "priority": 1
+  }
 }
+
+    
+    try:
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                templates = json.load(f)
+                print(f"✅ Loaded {len(templates)} profile templates from {filename}")
+                return templates
+        else:
+            # Create default templates file
+            with open(filename, 'w') as f:
+                json.dump(default_templates, f, indent=2)
+            print(f"📁 Created default profile templates file: {filename}")
+            print(f"   Edit this file to add/remove/modify platforms")
+            return default_templates
+    except Exception as e:
+        print(f"❌ Error loading profile templates from {filename}: {e}")
+        print("🔄 Using default templates")
+        return default_templates
+
+
+def save_profile_templates(templates: Dict[str, Any], filename: str = "profile_templates.json"):
+    """Save profile templates to JSON file."""
+    try:
+        with open(filename, 'w') as f:
+            json.dump(templates, f, indent=2)
+        print(f"💾 Saved {len(templates)} profile templates to {filename}")
+    except Exception as e:
+        print(f"❌ Error saving profile templates: {e}")
+
+
+def get_enabled_platforms(templates: Dict[str, Any]) -> List[str]:
+    """Get list of enabled platforms from templates."""
+    enabled = []
+    for platform_name, config in templates.items():
+        if config.get("enabled", True):
+            enabled.append(platform_name)
+    return enabled
+
+
+def get_platforms_by_category(templates: Dict[str, Any]) -> Dict[str, List[str]]:
+    """Organize platforms by category."""
+    categories = {}
+    for platform_name, config in templates.items():
+        if config.get("enabled", True):
+            category = config.get("category", "Uncategorized")
+            if category not in categories:
+                categories[category] = []
+            categories[category].append(platform_name)
+    return categories
+
+
+# Load templates at module level
+PROFILE_TEMPLATES = load_profile_templates()
 
 
 # ================== SITE-SPECIFIC CHECKERS ==================
@@ -452,6 +694,7 @@ class EnhancedProfileCrawler:
         })
         self.checkers = SiteCheckers()
         self.rate_limit_cache = {}
+        self.profile_templates = load_profile_templates(self.config.PROFILE_TEMPLATES_FILE)
     
     def get_random_user_agent(self) -> str:
         """Get a random user agent."""
@@ -521,7 +764,7 @@ class EnhancedProfileCrawler:
             )
             
             # Get platform configuration
-            platform_config = PROFILE_TEMPLATES.get(platform, {})
+            platform_config = self.profile_templates.get(platform, {})
             if isinstance(platform_config, str):
                 platform_config = {"url": platform_config, "check_method": "status_code"}
             
@@ -753,7 +996,7 @@ class EnhancedProfileCrawler:
     def crawl_usernames(self, usernames: List[str], platforms: List[str] = None) -> Dict[str, List[Dict]]:
         """Crawl multiple usernames across platforms."""
         if platforms is None:
-            platforms = list(PROFILE_TEMPLATES.keys())
+            platforms = get_enabled_platforms(self.profile_templates)
         
         results = {username: [] for username in usernames}
         
@@ -766,10 +1009,10 @@ class EnhancedProfileCrawler:
                     continue
                 
                 for platform in platforms:
-                    if platform not in PROFILE_TEMPLATES:
+                    if platform not in self.profile_templates:
                         continue
                     
-                    platform_config = PROFILE_TEMPLATES[platform]
+                    platform_config = self.profile_templates[platform]
                     if isinstance(platform_config, str):
                         url = platform_config.format(username)
                     else:
@@ -979,6 +1222,218 @@ class FaceIndexSystem:
             return False
 
 
+# ================== TEMPLATE MANAGEMENT FUNCTIONS ==================
+
+def manage_templates_menu():
+    """Menu for managing profile templates."""
+    while True:
+        print("\n" + "=" * 60)
+        print("Profile Templates Management")
+        print("=" * 60)
+        print("1. List all platforms")
+        print("2. List by category")
+        print("3. Add new platform")
+        print("4. Edit existing platform")
+        print("5. Enable/Disable platform")
+        print("6. Export templates to JSON")
+        print("7. Import templates from JSON")
+        print("8. Back to main menu")
+        
+        choice = input("\nSelect option (1-8): ").strip()
+        
+        if choice == "1":
+            # List all platforms
+            templates = load_profile_templates()
+            print(f"\n📋 All Platforms ({len(templates)} total):")
+            for i, (platform_name, config) in enumerate(templates.items(), 1):
+                enabled = "✅" if config.get("enabled", True) else "❌"
+                category = config.get("category", "Uncategorized")
+                print(f"  {i:2d}. {enabled} {platform_name:20} - {category}")
+        
+        elif choice == "2":
+            # List by category
+            templates = load_profile_templates()
+            categories = get_platforms_by_category(templates)
+            
+            print("\n📋 Platforms by Category:")
+            for category, platforms in categories.items():
+                print(f"\n  {category}:")
+                for platform in sorted(platforms):
+                    config = templates[platform]
+                    enabled = "✅" if config.get("enabled", True) else "❌"
+                    url_template = config.get("url", "No URL")
+                    print(f"      {enabled} {platform:20} - {url_template}")
+        
+        elif choice == "3":
+            # Add new platform
+            print("\n➕ Add New Platform")
+            
+            platform_name = input("Platform name (lowercase, no spaces): ").strip().lower()
+            if not platform_name:
+                print("❌ Platform name required")
+                continue
+            
+            templates = load_profile_templates()
+            if platform_name in templates:
+                print(f"❌ Platform '{platform_name}' already exists")
+                continue
+            
+            url_template = input("URL template (use {} for username): ").strip()
+            if not url_template or "{}" not in url_template:
+                print("❌ URL template must contain {} placeholder for username")
+                continue
+            
+            category = input("Category (e.g., Social Media, Tech, etc): ").strip() or "Other"
+            
+            print("\nAvailable check methods:")
+            print("  status_code - Simple 200 OK check")
+            print("  github_check - GitHub specific check")
+            print("  twitter_check - Twitter specific check")
+            print("  [and other check_methods from SiteCheckers class]")
+            
+            check_method = input("Check method (default: status_code): ").strip() or "status_code"
+            
+            avatar_selector = input("Avatar CSS selector (optional): ").strip()
+            
+            requires_js = input("Requires JavaScript? (y/N): ").strip().lower() == 'y'
+            
+            new_template = {
+                "url": url_template,
+                "check_method": check_method,
+                "avatar_selector": avatar_selector,
+                "requires_javascript": requires_js,
+                "platform": platform_name,
+                "category": category,
+                "enabled": True,
+                "priority": 3
+            }
+            
+            templates[platform_name] = new_template
+            save_profile_templates(templates)
+            print(f"✅ Platform '{platform_name}' added successfully")
+        
+        elif choice == "4":
+            # Edit existing platform
+            templates = load_profile_templates()
+            
+            print("\n✏️  Edit Platform")
+            platforms = list(templates.keys())
+            
+            for i, platform in enumerate(platforms, 1):
+                print(f"  {i:2d}. {platform}")
+            
+            try:
+                selection = int(input("\nSelect platform number: ").strip())
+                if 1 <= selection <= len(platforms):
+                    platform_name = platforms[selection - 1]
+                    config = templates[platform_name]
+                    
+                    print(f"\nEditing: {platform_name}")
+                    print(f"Current URL: {config.get('url')}")
+                    new_url = input(f"New URL (Enter to keep current): ").strip()
+                    if new_url:
+                        if "{}" not in new_url:
+                            print("❌ URL must contain {} placeholder")
+                            continue
+                        config["url"] = new_url
+                    
+                    print(f"Current category: {config.get('category')}")
+                    new_category = input(f"New category: ").strip()
+                    if new_category:
+                        config["category"] = new_category
+                    
+                    print(f"Current check method: {config.get('check_method')}")
+                    new_check = input(f"New check method: ").strip()
+                    if new_check:
+                        config["check_method"] = new_check
+                    
+                    print(f"Current avatar selector: {config.get('avatar_selector')}")
+                    new_selector = input(f"New avatar selector: ").strip()
+                    if new_selector:
+                        config["avatar_selector"] = new_selector
+                    
+                    save_profile_templates(templates)
+                    print(f"✅ Platform '{platform_name}' updated")
+                else:
+                    print("❌ Invalid selection")
+            except (ValueError, IndexError):
+                print("❌ Invalid input")
+        
+        elif choice == "5":
+            # Enable/Disable platform
+            templates = load_profile_templates()
+            
+            print("\n⚙️  Enable/Disable Platform")
+            platforms = list(templates.keys())
+            
+            for i, platform in enumerate(platforms, 1):
+                enabled = "✅" if templates[platform].get("enabled", True) else "❌"
+                print(f"  {i:2d}. {enabled} {platform}")
+            
+            try:
+                selection = int(input("\nSelect platform number: ").strip())
+                if 1 <= selection <= len(platforms):
+                    platform_name = platforms[selection - 1]
+                    current = templates[platform_name].get("enabled", True)
+                    templates[platform_name]["enabled"] = not current
+                    
+                    status = "enabled" if not current else "disabled"
+                    save_profile_templates(templates)
+                    print(f"✅ Platform '{platform_name}' {status}")
+                else:
+                    print("❌ Invalid selection")
+            except (ValueError, IndexError):
+                print("❌ Invalid input")
+        
+        elif choice == "6":
+            # Export templates
+            filename = input("Export filename (default: profile_templates_export.json): ").strip() or "profile_templates_export.json"
+            templates = load_profile_templates()
+            save_profile_templates(templates, filename)
+            print(f"✅ Templates exported to {filename}")
+        
+        elif choice == "7":
+            # Import templates
+            filename = input("Import filename: ").strip()
+            if not filename:
+                print("❌ Filename required")
+                continue
+            
+            if not os.path.exists(filename):
+                print(f"❌ File '{filename}' not found")
+                continue
+            
+            try:
+                with open(filename, 'r') as f:
+                    imported = json.load(f)
+                
+                # Merge or replace?
+                print("\nImport options:")
+                print("  1. Merge with existing (keep both)")
+                print("  2. Replace existing (overwrite)")
+                print("  3. Cancel")
+                
+                option = input("Select option (1-3): ").strip()
+                
+                if option == "1":
+                    templates = load_profile_templates()
+                    templates.update(imported)
+                    save_profile_templates(templates)
+                    print(f"✅ Merged {len(imported)} templates")
+                elif option == "2":
+                    save_profile_templates(imported)
+                    print(f"✅ Replaced with {len(imported)} templates")
+                else:
+                    print("❌ Import cancelled")
+            
+            except Exception as e:
+                print(f"❌ Error importing: {e}")
+        
+        elif choice == "8":
+            # Back to main menu
+            break
+
+
 # ================== TESTING ==================
 
 def test_known_profiles():
@@ -1111,12 +1566,13 @@ def main():
         print("3. Run known profile tests")
         print("4. Compare target face")
         print("5. Show statistics")
-        print("6. Save index")
-        print("7. Load index")
-        print("8. Clear index")
-        print("9. Exit")
+        print("6. Manage profile templates")
+        print("7. Save face index")
+        print("8. Load face index")
+        print("9. Clear face index")
+        print("10. Exit")
         
-        choice = input("\nSelect option (1-9): ").strip()
+        choice = input("\nSelect option (1-10): ").strip()
         
         if choice == "1":
             # Search usernames
@@ -1127,24 +1583,32 @@ def main():
             usernames = [u.strip() for u in usernames_input.split(',')]
             
             # Platform selection
-            platforms = list(PROFILE_TEMPLATES.keys())
-            print(f"\nAvailable platforms ({len(platforms)}):")
-            print(", ".join(platforms))
+            templates = load_profile_templates()
+            enabled_platforms = get_enabled_platforms(templates)
+            categories = get_platforms_by_category(templates)
+            
+            print(f"\n📋 Available platforms ({len(enabled_platforms)} enabled):")
+            for category, platforms in categories.items():
+                print(f"\n  {category}:")
+                for platform in sorted(platforms):
+                    config = templates[platform]
+                    url_template = config.get("url", "No URL")
+                    print(f"    {platform:20} - {url_template}")
             
             platform_input = input("\nEnter platforms (comma-separated, or 'all'): ").strip().lower()
             
             if platform_input == 'all':
-                selected_platforms = platforms
+                selected_platforms = enabled_platforms
             else:
                 selected_platforms = []
                 for item in platform_input.split(','):
                     item = item.strip()
-                    if item in platforms:
+                    if item in enabled_platforms:
                         selected_platforms.append(item)
             
             if not selected_platforms:
-                # Default to platforms that work well
-                selected_platforms = ["github", "twitter", "reddit", "aboutme", "artstation", "deviantart"]
+                # Default to a few platforms
+                selected_platforms = ["github", "reddit", "aboutme", "artstation"]
             
             print(f"\n🔍 Searching {len(usernames)} user(s) on {len(selected_platforms)} platform(s)...")
             
@@ -1174,7 +1638,7 @@ def main():
             
             # Offer to save
             if new_faces:
-                save = input("\n💾 Save results to index? (y/N): ").strip().lower()
+                save = input("\n💾 Save results to face index? (y/N): ").strip().lower()
                 if save == 'y':
                     face_system.save_index()
         
@@ -1244,20 +1708,23 @@ def main():
                     print(f"    {platform}: {count}")
         
         elif choice == "6":
-            filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
-            face_system.save_index(filename)
+            manage_templates_menu()
         
         elif choice == "7":
             filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
-            face_system.load_index(filename)
+            face_system.save_index(filename)
         
         elif choice == "8":
+            filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
+            face_system.load_index(filename)
+        
+        elif choice == "9":
             confirm = input("Clear all indexed faces? (y/N): ").strip().lower()
             if confirm == 'y':
                 face_system.faces = []
-                print("✅ Index cleared")
+                print("✅ Face index cleared")
         
-        elif choice == "9":
+        elif choice == "10":
             print("👋 Goodbye!")
             break
 
