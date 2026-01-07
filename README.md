@@ -14,13 +14,13 @@ Also use this guide as well [OPSEC OSINT Tools](https://github.com/airborne-comm
 
 	python3.10 -m venv venv &&
 	source venv/bin/activate /
-	pip3 install git+https://github.com/ageitgey/face_recognition_models /
-	pip3 install --upgrade pip setuptools wheel /
-	pip3 install dlib numpy pillow requests face_recognition 
+	pip3 install git+https://github.com/ageitgey/face_recognition_models &&
+	pip3 install --upgrade pip setuptools wheel &&
+	pip3 install dlib numpy pillow requests face_recognition beautifulsoup4 tldextract fake-useragent
 
 Or with requirements.txt
 
-	pip3 install -r requirements.txt
+	python3.10 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt
 	
 to run simply edit the python file lines with the found images:
 
@@ -36,7 +36,6 @@ Then run hash.py >> hashes.txt
 
 May also use `hash_advanced.py`
 
-	pip install requests pillow numpy face_recognition beautifulsoup4 tldextract fake-useragent
 
 Simply run `hash_advanced.py` and follow the prompts.
 

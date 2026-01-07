@@ -7,3 +7,6 @@ numpy
 pillow
 requests
 face_recognition
+beautifulsoup4 
+tldextract
+fake-useragent
