@@ -12,7 +12,7 @@ Also use this guide as well [OPSEC OSINT Tools](https://github.com/airborne-comm
 
 # Install
 
-	python3.10 -m venv venv /
+	python3.10 -m venv venv &&
 	source venv/bin/activate /
 	pip3 install git+https://github.com/ageitgey/face_recognition_models /
 	pip3 install --upgrade pip setuptools wheel /
