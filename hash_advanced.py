@@ -359,6 +359,16 @@ def load_profile_templates(filename: str = "profile_templates.json") -> Dict[str
     "category": "Creative/Portfolio",
     "enabled": True,
     "priority": 1
+  },
+  "poshmark": {
+    "url": "https://poshmark.com/closet/{}",
+    "check_method": "status_code",
+    "avatar_selector": ".avatar img",
+    "requires_javascript": True,
+    "platform": "poshmark",
+    "category": "shopping",
+    "enabled": True,
+    "priority": 1
   }
 }
 
@@ -1222,6 +1232,229 @@ class FaceIndexSystem:
             return False
 
 
+# ================== NEW FUNCTIONS FOR URI FACE COMPARISON ==================
+
+def compare_face_from_uri(face_system, uri: str, username: str = None, save_to_db: bool = False):
+    """Compare a face from a URI (URL or local path) with indexed faces."""
+    print(f"\n🔍 Comparing face from URI: {uri}")
+    
+    # Load target image
+    target_bytes = get_image_bytes(uri)
+    if not target_bytes:
+        print("❌ Could not load image from URI")
+        return
+    
+    # Check if it's a valid image
+    try:
+        Image.open(BytesIO(target_bytes)).verify()
+    except Exception:
+        print("❌ Invalid image file")
+        return
+    
+    # Extract face encoding
+    print("🧬 Extracting face encoding...")
+    target_encoding = compute_face_encoding(target_bytes)
+    if target_encoding is None:
+        print("❌ No face detected in the image")
+        return
+    
+    print("✅ Face encoding extracted successfully")
+    
+    # Get comparison parameters
+    try:
+        threshold = float(input("Match threshold (0.1-1.0, default 0.6): ") or "0.6")
+        top_k = int(input("Number of results to show (default 20): ") or "20")
+    except ValueError:
+        threshold = 0.6
+        top_k = 20
+    
+    # Search for matches
+    print(f"\n🔍 Searching {len(face_system.faces)} indexed faces...")
+    matches = face_system.search_faces(target_encoding, threshold, top_k)
+    
+    if not matches:
+        print("❌ No matches found")
+        return matches
+    
+    # Display results
+    print(f"\n🏆 Top {len(matches)} matches:")
+    for i, match in enumerate(matches, 1):
+        symbol = "✅" if match["match"] else "⚠️"
+        similarity_percent = match['similarity'] * 100
+        
+        # Color code based on similarity
+        if similarity_percent >= 80:
+            similarity_str = f"🎯 {similarity_percent:.1f}%"
+        elif similarity_percent >= 60:
+            similarity_str = f"🔍 {similarity_percent:.1f}%"
+        else:
+            similarity_str = f"📊 {similarity_percent:.1f}%"
+        
+        print(f"\n  {i}. {symbol} {similarity_str}")
+        print(f"     User: {match['username']}")
+        print(f"     Platform: {match['platform']}")
+        print(f"     Distance: {match['distance']:.4f}")
+        
+        if match['image_url']:
+            print(f"     Image: {match['image_url'][:80]}...")
+    
+    # Option to save the face to database
+    if save_to_db and username:
+        save_face_to_db(face_system, target_encoding, uri, username, uri)
+        print(f"✅ Face saved to database with username: {username}")
+    
+    return matches
+
+
+def save_face_to_db(face_system, encoding: np.ndarray, image_url: str, username: str, page_url: str = None, platform: str = "direct_uri"):
+    """Save a face to the database directly."""
+    face_record = {
+        "username": username,
+        "platform": platform,
+        "page_url": page_url or image_url,
+        "image_url": image_url,
+        "encoding": encoding.tolist(),
+        "timestamp": time.time(),
+        "source": "direct_uri"
+    }
+    
+    face_system.faces.append(face_record)
+    return face_record
+
+
+def batch_compare_from_file(face_system, filename: str):
+    """Compare faces from a file containing URIs and usernames."""
+    if not os.path.exists(filename):
+        print(f"❌ File '{filename}' not found")
+        return
+    
+    try:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+    except Exception as e:
+        print(f"❌ Error reading file: {e}")
+        return
+    
+    print(f"\n📄 Processing {len(lines)} entries from {filename}...")
+    
+    results = []
+    for line_num, line in enumerate(lines, 1):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        
+        parts = line.split(',')
+        if len(parts) >= 2:
+            uri = parts[0].strip()
+            username = parts[1].strip()
+            
+            print(f"\n[{line_num}] Processing {username} - {uri}")
+            
+            # Get the face
+            target_bytes = get_image_bytes(uri)
+            if not target_bytes:
+                print(f"  ❌ Could not load image")
+                continue
+            
+            target_encoding = compute_face_encoding(target_bytes)
+            if target_encoding is None:
+                print(f"  ❌ No face detected")
+                continue
+            
+            # Search for matches
+            matches = face_system.search_faces(target_encoding, threshold=0.6, top_k=5)
+            
+            if matches:
+                best_match = matches[0]
+                results.append({
+                    'uri': uri,
+                    'username': username,
+                    'best_match': best_match['username'],
+                    'similarity': best_match['similarity'],
+                    'platform': best_match['platform']
+                })
+                
+                print(f"  🔍 Best match: {best_match['username']} ({best_match['similarity']:.3f})")
+            else:
+                print(f"  ⚠️ No matches found")
+    
+    # Save results
+    if results:
+        output_file = f"comparison_results_{int(time.time())}.json"
+        with open(output_file, 'w') as f:
+            json.dump(results, f, indent=2)
+        print(f"\n💾 Results saved to {output_file}")
+    
+    return results
+
+
+def extract_faces_from_webpage(url: str, username: str = None):
+    """Extract faces from a webpage URL."""
+    print(f"\n🌐 Extracting faces from webpage: {url}")
+    
+    crawler = EnhancedProfileCrawler()
+    
+    # Get the page
+    try:
+        response = requests.get(
+            url,
+            headers={'User-Agent': UserAgent().random},
+            timeout=15
+        )
+        response.raise_for_status()
+    except Exception as e:
+        print(f"❌ Error fetching webpage: {e}")
+        return []
+    
+    # Extract images
+    image_urls = crawler.extract_images(response.text, url, {})
+    
+    if not image_urls:
+        print("❌ No images found on page")
+        return []
+    
+    print(f"📸 Found {len(image_urls)} images")
+    
+    faces = []
+    for i, img_url in enumerate(image_urls[:10], 1):  # Limit to first 10 images
+        print(f"  [{i}] Processing: {img_url[:80]}...")
+        
+        img_bytes = get_image_bytes(img_url)
+        if not img_bytes:
+            continue
+        
+        encoding = compute_face_encoding(img_bytes)
+        if encoding is not None:
+            faces.append({
+                'image_url': img_url,
+                'encoding': encoding,
+                'page_url': url
+            })
+            print(f"    ✅ Face detected")
+    
+    print(f"\n✅ Found {len(faces)} faces on the webpage")
+    return faces
+
+
+def create_uri_batch_file():
+    """Create a template batch file for URI comparisons."""
+    template = """# URI comparison batch file
+# Format: image_url_or_path,username,optional_platform
+# 
+# Examples:
+https://example.com/face1.jpg,john_doe,facebook
+https://example.com/face2.jpg,jane_smith,instagram
+/path/to/local/image.jpg,anonymous,direct
+"""
+    
+    filename = f"uri_batch_{int(time.time())}.txt"
+    with open(filename, 'w') as f:
+        f.write(template)
+    
+    print(f"📝 Created batch template file: {filename}")
+    print("Edit this file with your URIs and usernames, then use option 7.")
+
+
 # ================== TEMPLATE MANAGEMENT FUNCTIONS ==================
 
 def manage_templates_menu():
@@ -1564,15 +1797,19 @@ def main():
         print("1. Search for usernames")
         print("2. Test specific profile")
         print("3. Run known profile tests")
-        print("4. Compare target face")
-        print("5. Show statistics")
-        print("6. Manage profile templates")
-        print("7. Save face index")
-        print("8. Load face index")
-        print("9. Clear face index")
-        print("10. Exit")
+        print("4. Compare target face (from local image)")
+        print("5. Compare face from URL/URI (NEW)")
+        print("6. Extract faces from webpage (NEW)")
+        print("7. Batch compare from file (NEW)")
+        print("8. Create batch template (NEW)")
+        print("9. Show statistics")
+        print("10. Manage profile templates")
+        print("11. Save face index")
+        print("12. Load face index")
+        print("13. Clear face index")
+        print("14. Exit")
         
-        choice = input("\nSelect option (1-10): ").strip()
+        choice = input("\nSelect option (1-14): ").strip()
         
         if choice == "1":
             # Search usernames
@@ -1693,6 +1930,79 @@ def main():
                     print(f"     🎯 Strong match!")
         
         elif choice == "5":
+            # NEW: Compare face from URL/URI
+            uri = input("Enter image URL or local file path: ").strip()
+            if not uri:
+                continue
+            
+            print("\nOptions:")
+            print("1. Just compare with existing faces")
+            print("2. Compare and save to database")
+            
+            sub_choice = input("Select (1-2): ").strip()
+            
+            if sub_choice == "2":
+                username = input("Enter username for this face: ").strip()
+                if username:
+                    compare_face_from_uri(face_system, uri, username, save_to_db=True)
+                else:
+                    print("❌ Username required to save to database")
+            else:
+                compare_face_from_uri(face_system, uri)
+        
+        elif choice == "6":
+            # NEW: Extract faces from webpage
+            url = input("Enter webpage URL: ").strip()
+            if not url:
+                continue
+            
+            faces = extract_faces_from_webpage(url)
+            
+            if faces:
+                print("\nOptions:")
+                print("1. Compare each face with database")
+                print("2. Save all faces to database")
+                
+                sub_choice = input("Select (1-2): ").strip()
+                
+                if sub_choice == "1":
+                    for i, face in enumerate(faces, 1):
+                        print(f"\n[{i}] Comparing face from image...")
+                        temp_uri = face['image_url']
+                        matches = compare_face_from_uri(face_system, temp_uri)
+                        
+                        if matches and len(matches) > 0:
+                            best = matches[0]
+                            if best['similarity'] > 0.7:
+                                save = input(f"  Save as match to {best['username']}? (y/N): ").strip().lower()
+                                if save == 'y':
+                                    username = input(f"  Username (default: {best['username']}): ").strip() or best['username']
+                                    save_face_to_db(face_system, face['encoding'], face['image_url'], username, face['page_url'], "webpage_extraction")
+                                    print(f"  ✅ Saved to database")
+                
+                elif sub_choice == "2":
+                    username = input("Base username (faces will be saved as username_1, username_2, etc): ").strip()
+                    if username:
+                        for i, face in enumerate(faces, 1):
+                            user_id = f"{username}_{i}"
+                            save_face_to_db(face_system, face['encoding'], face['image_url'], user_id, face['page_url'], "webpage_extraction")
+                        print(f"✅ Saved {len(faces)} faces to database")
+                    else:
+                        print("❌ Username required")
+        
+        elif choice == "7":
+            # NEW: Batch compare from file
+            filename = input("Enter filename with URIs and usernames (CSV format): ").strip()
+            if filename and os.path.exists(filename):
+                batch_compare_from_file(face_system, filename)
+            else:
+                print("❌ File not found")
+        
+        elif choice == "8":
+            # NEW: Create batch template
+            create_uri_batch_file()
+        
+        elif choice == "9":
             print(f"\n📊 Statistics:")
             print(f"  Total faces: {len(face_system.faces)}")
             
@@ -1706,25 +2016,35 @@ def main():
                 print(f"  By platform:")
                 for platform, count in sorted(platforms.items(), key=lambda x: x[1], reverse=True):
                     print(f"    {platform}: {count}")
+                
+                # Count by source
+                sources = {}
+                for face in face_system.faces:
+                    source = face.get("source", "unknown")
+                    sources[source] = sources.get(source, 0) + 1
+                
+                print(f"  By source:")
+                for source, count in sorted(sources.items(), key=lambda x: x[1], reverse=True):
+                    print(f"    {source}: {count}")
         
-        elif choice == "6":
+        elif choice == "10":
             manage_templates_menu()
         
-        elif choice == "7":
+        elif choice == "11":
             filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
             face_system.save_index(filename)
         
-        elif choice == "8":
+        elif choice == "12":
             filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
             face_system.load_index(filename)
         
-        elif choice == "9":
+        elif choice == "13":
             confirm = input("Clear all indexed faces? (y/N): ").strip().lower()
             if confirm == 'y':
                 face_system.faces = []
                 print("✅ Face index cleared")
         
-        elif choice == "10":
+        elif choice == "14":
             print("👋 Goodbye!")
             break
 
