@@ -49,330 +49,7 @@ def load_profile_templates(filename: str = "profile_templates.json") -> Dict[str
     Load profile templates from a JSON file.
     If file doesn't exist, create it with default templates.
     """
-    default_templates = {
-  "github": {
-    "url": "https://github.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": "img.avatar",
-    "requires_javascript": False,
-    "platform": "github",
-    "category": "Tech/Developer Communities",
-    "enabled": True,
-    "priority": 1
-  },
-  "stackoverflow": {
-    "url": "https://stackoverflow.com/users/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": False,
-    "platform": "stackoverflow",
-    "category": "Tech/Developer Communities",
-    "enabled": True,
-    "priority": 1
-  },
-  "gitlab": {
-    "url": "https://gitlab.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".user-avatar img",
-    "requires_javascript": False,
-    "platform": "gitlab",
-    "category": "Tech/Developer Communities",
-    "enabled": True,
-    "priority": 1
-  },
-  "twitter": {
-    "url": "https://twitter.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": "img[alt*='profile']",
-    "requires_javascript": True,
-    "platform": "twitter",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 1
-  },
-  "instagram": {
-    "url": "https://www.instagram.com/{}/",
-    "check_method": "status_code",
-    "avatar_selector": "header img",
-    "requires_javascript": True,
-    "platform": "instagram",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 1
-  },
-  "facebook": {
-    "url": "https://www.facebook.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": "img.profile-pic",
-    "requires_javascript": True,
-    "platform": "facebook",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 1
-  },
-  "linkedin": {
-    "url": "https://www.linkedin.com/in/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-photo img",
-    "requires_javascript": True,
-    "platform": "linkedin",
-    "category": "Professional Networking",
-    "enabled": True,
-    "priority": 1
-  },
-  "tiktok": {
-    "url": "https://www.tiktok.com/@{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": True,
-    "platform": "tiktok",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 1
-  },
-  "snapchat": {
-    "url": "https://www.snapchat.com/add/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".user-avatar img",
-    "requires_javascript": True,
-    "platform": "snapchat",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 2
-  },
-  "pinterest": {
-    "url": "https://www.pinterest.com/{}/",
-    "check_method": "status_code",
-    "avatar_selector": ".profileAvatar img",
-    "requires_javascript": True,
-    "platform": "pinterest",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 2
-  },
-  "youtube": {
-    "url": "https://www.youtube.com/@{}",
-    "check_method": "status_code",
-    "avatar_selector": "#avatar img",
-    "requires_javascript": True,
-    "platform": "youtube",
-    "category": "Video Sharing",
-    "enabled": True,
-    "priority": 1
-  },
-  "twitch": {
-    "url": "https://www.twitch.tv/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-badge img",
-    "requires_javascript": True,
-    "platform": "twitch",
-    "category": "Streaming",
-    "enabled": True,
-    "priority": 2
-  },
-  "reddit": {
-    "url": "https://www.reddit.com/user/{}",
-    "check_method": "status_code",
-    "avatar_selector": "img.user-profile-image",
-    "requires_javascript": False,
-    "platform": "reddit",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 1
-  },
-  "discord": {
-    "url": "https://discord.com/users/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar-3tSjgd",
-    "requires_javascript": True,
-    "platform": "discord",
-    "category": "Social Media",
-    "enabled": True,
-    "priority": 2
-  },
-  "medium": {
-    "url": "https://medium.com/@{}",
-    "check_method": "status_code",
-    "avatar_selector": ".ds-avatar img",
-    "requires_javascript": True,
-    "platform": "medium",
-    "category": "Publishing",
-    "enabled": True,
-    "priority": 1
-  },
-  "onlyfans": {
-    "url": "https://onlyfans.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-picture img",
-    "requires_javascript": True,
-    "platform": "onlyfans",
-    "category": "Adult Content",
-    "enabled": True,
-    "priority": 2
-  },
-  "pornhub": {
-    "url": "https://www.pornhub.com/users/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": False,
-    "platform": "pornhub",
-    "category": "Adult Content",
-    "enabled": True,
-    "priority": 3
-  },
-  "xvideos": {
-    "url": "https://www.xvideos.com/profiles/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": False,
-    "platform": "xvideos",
-    "category": "Adult Content",
-    "enabled": True,
-    "priority": 3
-  },
-  "linktree": {
-    "url": "https://linktr.ee/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-img img",
-    "requires_javascript": False,
-    "platform": "linktree",
-    "category": "Link Aggregation",
-    "enabled": True,
-    "priority": 1
-  },
-  "carrd": {
-    "url": "https://{}.carrd.co",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-avatar img",
-    "requires_javascript": False,
-    "platform": "carrd",
-    "category": "Link Aggregation",
-    "enabled": True,
-    "priority": 2
-  },
-  "paypal": {
-    "url": "https://paypal.me/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-image img",
-    "requires_javascript": False,
-    "platform": "paypal",
-    "category": "Payment Services",
-    "enabled": True,
-    "priority": 2
-  },
-  "cashapp": {
-    "url": "https://cash.app/${}",
-    "check_method": "status_code",
-    "avatar_selector": ".user-avatar img",
-    "requires_javascript": True,
-    "platform": "cashapp",
-    "category": "Payment Services",
-    "enabled": True,
-    "priority": 2
-  },
-  "venmo": {
-    "url": "https://venmo.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-pic img",
-    "requires_javascript": True,
-    "platform": "venmo",
-    "category": "Payment Services",
-    "enabled": True,
-    "priority": 2
-  },
-  "steam": {
-    "url": "https://steamcommunity.com/id/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".playerAvatar img",
-    "requires_javascript": False,
-    "platform": "steam",
-    "category": "Gaming",
-    "enabled": True,
-    "priority": 2
-  },
-  "roblox": {
-    "url": "https://www.roblox.com/users/{}/profile",
-    "check_method": "status_code",
-    "avatar_selector": ".thumbnail img",
-    "requires_javascript": True,
-    "platform": "roblox",
-    "category": "Gaming",
-    "enabled": True,
-    "priority": 2
-  },
-  "soundcloud": {
-    "url": "https://soundcloud.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".userImage img",
-    "requires_javascript": True,
-    "platform": "soundcloud",
-    "category": "Music",
-    "enabled": True,
-    "priority": 2
-  },
-  "spotify": {
-    "url": "https://open.spotify.com/user/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".user-image img",
-    "requires_javascript": True,
-    "platform": "spotify",
-    "category": "Music",
-    "enabled": True,
-    "priority": 2
-  },
-  "artstation": {
-    "url": "https://www.artstation.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-image img",
-    "requires_javascript": False,
-    "platform": "artstation",
-    "category": "Creative/Portfolio",
-    "enabled": True,
-    "priority": 1
-  },
-  "deviantart": {
-    "url": "https://www.deviantart.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": False,
-    "platform": "deviantart",
-    "category": "Creative/Portfolio",
-    "enabled": True,
-    "priority": 2
-  },
-  "behance": {
-    "url": "https://www.behance.net/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".profile-image img",
-    "requires_javascript": False,
-    "platform": "behance",
-    "category": "Creative/Portfolio",
-    "enabled": True,
-    "priority": 1
-  },
-  "dribbble": {
-    "url": "https://dribbble.com/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": True,
-    "platform": "dribbble",
-    "category": "Creative/Portfolio",
-    "enabled": True,
-    "priority": 1
-  },
-  "poshmark": {
-    "url": "https://poshmark.com/closet/{}",
-    "check_method": "status_code",
-    "avatar_selector": ".avatar img",
-    "requires_javascript": True,
-    "platform": "poshmark",
-    "category": "shopping",
-    "enabled": True,
-    "priority": 1
-  }
-}
 
-    
     try:
         if os.path.exists(filename):
             with open(filename, 'r') as f:
@@ -457,8 +134,8 @@ class SiteCheckers:
             f'itemprop="name"',
             'vcard-names-container',
             'js-profile-editable-area',
-            'p-nickname vcard-username',  # GitHub username element
-            'user-profile-frame',  # GitHub profile frame
+            'p-nickname vcard-username',
+            'user-profile-frame',
         ]
         
         # Check for username in page
@@ -682,12 +359,70 @@ class SiteCheckers:
             return False
         
         return True
+    
+    @staticmethod
+    def universal_check(response: requests.Response, username: str) -> bool:
+        """Universal profile checker for any site."""
+        if response.status_code != 200:
+            return False
+        
+        html = response.text.lower()
+        
+        # Common "not found" patterns across many sites
+        not_found_indicators = [
+            'page not found',
+            '404',
+            'not found',
+            'doesn\'t exist',
+            'does not exist',
+            'couldn\'t be found',
+            'no longer available',
+            'user not found',
+            'profile not found',
+            'account not found',
+            'this page could not be found',
+            'sorry, this page isn\'t available',
+            'the page you were looking for',
+            'we couldn\'t find that page',
+        ]
+        
+        for indicator in not_found_indicators:
+            if indicator in html:
+                return False
+        
+        # Check for username in page (good indicator of profile page)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Check title
+        title = soup.find('title')
+        if title and username.lower() in title.text.lower():
+            return True
+        
+        # Check meta tags
+        for meta in soup.find_all('meta'):
+            content = meta.get('content', '').lower()
+            if username.lower() in content:
+                return True
+        
+        # Check for common profile elements
+        profile_keywords = ['profile', 'user', 'member', 'account', 'avatar']
+        page_text = soup.get_text().lower()
+        
+        for keyword in profile_keywords:
+            if keyword in page_text:
+                # Also check if username appears near profile keyword
+                text_lower = page_text.replace('\n', ' ').replace('\r', ' ')
+                if username.lower() in text_lower:
+                    return True
+        
+        # Default to True if we got a 200 and no "not found" indicators
+        return True
 
 
 # ================== ENHANCED PROFILE CRAWLER ==================
 
 class EnhancedProfileCrawler:
-    """Enhanced crawler with site-specific checks."""
+    """Enhanced crawler with site-specific checks and universal image extraction."""
     
     def __init__(self, config: CrawlerConfig = None):
         self.config = config or CrawlerConfig()
@@ -727,31 +462,102 @@ class EnhancedProfileCrawler:
         self.rate_limit_cache[domain] = current_time
     
     def is_valid_avatar(self, url: str, img_element) -> bool:
-        """Check if an image URL is likely a valid avatar (not default/placeholder)."""
-        # Skip known placeholder avatars
+        """Universal check if an image is likely a valid avatar."""
+        url_lower = url.lower()
+        
+        # Skip known placeholder/blank avatars
         placeholder_keywords = [
             'default', 'placeholder', 'anonymous', 'unknown', 
-            'ghost', 'blank', 'null', 'empty'
+            'ghost', 'blank', 'null', 'empty', 'none',
+            'no-avatar', 'no-avatar.jpg', 'no-photo', 'no-image',
+            'default_avatar', 'default-profile', 'default-user',
+            'gravatar.com/avatar/?',  # Empty gravatar
+            'identicon', 'monsterid', 'wavatar', 'retro',  # GitHub defaults
+            '0.jpg', '0.png', '0.gif',  # Zero filenames
         ]
         
-        url_lower = url.lower()
         for keyword in placeholder_keywords:
             if keyword in url_lower:
                 return False
         
-        # Check img attributes
+        # Check image element attributes
         alt_text = (img_element.get('alt') or '').lower()
         for keyword in placeholder_keywords:
             if keyword in alt_text:
                 return False
         
-        # For GitHub specifically
-        if 'github' in url_lower:
-            # GitHub default avatars often have specific patterns
-            if 'identicon' in url_lower or 'monsterid' in url_lower or 'retro' in url_lower:
+        title_text = (img_element.get('title') or '').lower()
+        for keyword in placeholder_keywords:
+            if keyword in title_text:
                 return False
         
+        # Check for common placeholder dimensions (very small images)
+        try:
+            width_attr = img_element.get('width', '')
+            height_attr = img_element.get('height', '')
+            
+            if width_attr and height_attr:
+                width = int(''.join(filter(str.isdigit, width_attr)) or '0')
+                height = int(''.join(filter(str.isdigit, height_attr)) or '0')
+                
+                # Skip very small images (likely icons, not avatars)
+                if width < 32 or height < 32:
+                    return False
+        except:
+            pass
+        
+        # Check for common placeholder class names
+        img_class = ' '.join(img_element.get('class', [])).lower()
+        placeholder_classes = [
+            'placeholder', 'default', 'empty', 'blank',
+            'no-avatar', 'no-image', 'avatar-placeholder'
+        ]
+        
+        for p_class in placeholder_classes:
+            if p_class in img_class:
+                return False
+        
+        # Platform-specific checks
+        # GitHub
+        if 'github' in url_lower:
+            if any(x in url_lower for x in ['identicon', 'monsterid', 'retro', 'wavatar']):
+                return False
+        
+        # Gravatar
+        if 'gravatar.com/avatar/' in url_lower:
+            # Check for MD5 hash length (32 chars) - empty gravatars have short or no hash
+            import re
+            match = re.search(r'gravatar\.com/avatar/([a-fA-F0-9]+)', url_lower)
+            if match:
+                hash_value = match.group(1)
+                if len(hash_value) < 32:  # Not a proper MD5 hash
+                    return False
+        
         return True
+    
+    def get_image_src(self, img_element) -> Optional[str]:
+        """Get image source from img element with priority order."""
+        # List of attributes to check in order of priority
+        src_attrs = ['src', 'data-src', 'data-original', 'data-lazy-src', 'data-lazyload', 'srcset']
+        
+        for attr in src_attrs:
+            src = img_element.get(attr)
+            if not src:
+                continue
+            
+            # Clean and return the URL
+            if attr == 'srcset':
+                # Handle srcset - take the first (usually highest quality) image
+                srcset_parts = src.split(',')
+                if srcset_parts:
+                    first_part = srcset_parts[0].strip()
+                    url = first_part.split(' ')[0].strip()
+                    return url if url else None
+            else:
+                # For other attributes, return directly
+                return src.strip()
+        
+        return None
     
     def check_profile(self, url: str, platform: str, username: str) -> Dict[str, Any]:
         """Check if a profile exists with site-specific logic."""
@@ -808,6 +614,8 @@ class EnhancedProfileCrawler:
                 exists = self.checkers.keybase_check(response, username)
             elif check_method == "gitlab_check":
                 exists = self.checkers.gitlab_check(response, username)
+            elif check_method == "universal_check":
+                exists = self.checkers.universal_check(response, username)
             else:
                 # Default: status code 200
                 exists = response.status_code == 200
@@ -863,54 +671,89 @@ class EnhancedProfileCrawler:
             }
     
     def extract_images(self, html: str, base_url: str, platform_config: Dict) -> List[str]:
-        """Extract images from HTML."""
+        """Universal image extraction that works with any site."""
         soup = BeautifulSoup(html, 'html.parser')
         image_urls = set()
         
-        # Try platform-specific selector first
+        # Get platform name for specific handling if needed
+        platform_name = platform_config.get("platform", "")
+        platform_url = platform_config.get("url", "")
+        
+        # Phase 1: Try platform-specific selector first
         avatar_selector = platform_config.get("avatar_selector", "")
         if avatar_selector:
             try:
                 for img in soup.select(avatar_selector):
                     src = self.get_image_src(img)
                     if src:
-                        full_url = urljoin(base_url, src)
-                        # Filter out default/placeholder avatars
-                        if self.is_valid_avatar(full_url, img):
-                            image_urls.add(full_url)
+                        try:
+                            full_url = urljoin(base_url, src)
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                        except Exception as e:
+                            if self.config.VERBOSE:
+                                print(f"    [!] URL join error: {e}")
             except Exception as e:
                 if self.config.VERBOSE:
                     print(f"    [!] Error with selector {avatar_selector}: {e}")
         
-        # Special handling for GitHub
-        platform_name = platform_config.get("platform", "")
-        if platform_name == "github" or "github.com" in base_url:
-            # Look for GitHub-specific avatar patterns
+        # Phase 2: Universal avatar detection patterns
+        if not image_urls:
+            # Pattern 1: Look for common avatar class patterns
+            avatar_patterns = [
+                r'.*avatar.*',  # Contains 'avatar'
+                r'.*profile.*',  # Contains 'profile'
+                r'.*user.*',  # Contains 'user'
+                r'.*photo.*',  # Contains 'photo'
+                r'.*pic.*',  # Contains 'pic'
+                r'.*image.*',  # Contains 'image'
+            ]
+            
             for img in soup.find_all('img'):
-                src = self.get_image_src(img)
-                if not src:
-                    continue
-                
-                # Check if it's a GitHub avatar
-                if 'avatars.githubusercontent.com' in src:
-                    full_url = urljoin(base_url, src)
-                    # Skip default GitHub avatars
-                    if 'identicon' not in src and 'monsterid' not in src and 'retro' not in src:
-                        image_urls.add(full_url)
-                
-                # Also check for GitHub's avatar classes
+                # Check class attribute
                 img_class = ' '.join(img.get('class', []))
-                if 'avatar' in img_class.lower() and 'user' in img_class.lower():
-                    full_url = urljoin(base_url, src)
-                    if self.is_valid_avatar(full_url, img):
-                        image_urls.add(full_url)
+                if any(re.search(pattern, img_class, re.IGNORECASE) for pattern in avatar_patterns):
+                    src = self.get_image_src(img)
+                    if src:
+                        try:
+                            full_url = urljoin(base_url, src)
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                        except:
+                            pass
+                
+                # Check id attribute
+                img_id = img.get('id', '')
+                if any(re.search(pattern, img_id, re.IGNORECASE) for pattern in avatar_patterns):
+                    src = self.get_image_src(img)
+                    if src:
+                        try:
+                            full_url = urljoin(base_url, src)
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                        except:
+                            pass
+                
+                # Check alt attribute
+                img_alt = img.get('alt', '').lower()
+                if any(keyword in img_alt for keyword in ['profile', 'avatar', 'user', 'photo', 'picture']):
+                    src = self.get_image_src(img)
+                    if src:
+                        try:
+                            full_url = urljoin(base_url, src)
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                        except:
+                            pass
         
-        # Also check meta tags for social images
+        # Phase 3: Look for meta tags (social sharing images)
         meta_selectors = [
             'meta[property="og:image"]',
-            'meta[name="twitter:image"]',
+            'meta[name="og:image"]',
             'meta[property="twitter:image"]',
+            'meta[name="twitter:image"]',
             'meta[itemprop="image"]',
+            'meta[name="image"]',
         ]
         
         for selector in meta_selectors:
@@ -920,36 +763,34 @@ class EnhancedProfileCrawler:
                     try:
                         full_url = urljoin(base_url, content)
                         # Check if it looks like a profile image
-                        if any(keyword in full_url.lower() for keyword in ['profile', 'avatar', 'user', 'photo']):
-                            image_urls.add(full_url)
+                        if self.config.VERBOSE:
+                            print(f"    📱 Found meta image: {full_url}")
+                        image_urls.add(full_url)
                     except:
                         pass
         
-        # Fallback: all images that look like avatars
+        # Phase 4: Check all images with common avatar filename patterns
         if not image_urls:
+            avatar_filename_patterns = [
+                r'.*avatar.*\.(jpg|jpeg|png|gif|webp)$',
+                r'.*profile.*\.(jpg|jpeg|png|gif|webp)$',
+                r'.*user.*\.(jpg|jpeg|png|gif|webp)$',
+                r'.*pic.*\.(jpg|jpeg|png|gif|webp)$',
+                r'.*photo.*\.(jpg|jpeg|png|gif|webp)$',
+                r'.*pfp.*\.(jpg|jpeg|png|gif|webp)$',  # pfp = profile picture
+                r'.*me.*\.(jpg|jpeg|png|gif|webp)$',
+            ]
+            
             for img in soup.find_all('img'):
                 src = self.get_image_src(img)
                 if not src:
                     continue
                 
-                # Check if it looks like an avatar/profile image
-                img_alt = (img.get('alt') or '').lower()
-                img_class = (img.get('class') or [])
-                img_id = (img.get('id') or '').lower()
+                # Extract filename from URL
+                filename = src.split('/')[-1].split('?')[0].lower()
                 
-                is_profile_image = any([
-                    'avatar' in img_alt,
-                    'profile' in img_alt,
-                    'user' in img_alt,
-                    any('avatar' in str(c).lower() for c in img_class),
-                    any('profile' in str(c).lower() for c in img_class),
-                    'avatar' in img_id,
-                    'profile' in img_id,
-                    'photo' in img_alt,
-                    'picture' in img_alt,
-                ])
-                
-                if is_profile_image:
+                # Check if filename matches avatar patterns
+                if any(re.search(pattern, filename, re.IGNORECASE) for pattern in avatar_filename_patterns):
                     try:
                         full_url = urljoin(base_url, src)
                         if self.is_valid_avatar(full_url, img):
@@ -957,7 +798,69 @@ class EnhancedProfileCrawler:
                     except:
                         pass
         
-        # Convert to list and filter
+        # Phase 5: Check all images with common avatar URL patterns
+        if not image_urls:
+            avatar_url_patterns = [
+                r'.*\/avatar\/.*',
+                r'.*\/profile\/.*',
+                r'.*\/user\/.*',
+                r'.*\/photo\/.*',
+                r'gravatar\.com\/avatar\/.*',
+                r'avatars\..*\.com\/.*',
+                r'cdn\.discordapp\.com\/avatars\/.*',
+                r'ugc\.production\.linktr\.ee\/.*',  # Linktree CDN
+                r'pbs\.twimg\.com\/profile_images\/.*',  # Twitter
+                r'instagram\.fbom.*\.fna\.fbcdn\.net\/.*',  # Instagram
+                r'i\.redd\.it\/.*',  # Reddit
+                r'i\.imgur\.com\/.*',  # Imgur
+            ]
+            
+            for img in soup.find_all('img'):
+                src = self.get_image_src(img)
+                if not src:
+                    continue
+                
+                # Check if URL matches avatar patterns
+                if any(re.search(pattern, src, re.IGNORECASE) for pattern in avatar_url_patterns):
+                    try:
+                        full_url = urljoin(base_url, src)
+                        if self.is_valid_avatar(full_url, img):
+                            image_urls.add(full_url)
+                    except:
+                        pass
+        
+        # Phase 6: Fallback - take first few images that look reasonable
+        if not image_urls:
+            for img in soup.find_all('img')[:10]:  # Limit to first 10 images
+                src = self.get_image_src(img)
+                if not src:
+                    continue
+                
+                try:
+                    full_url = urljoin(base_url, src)
+                    
+                    # Check if it's a reasonable size (not an icon)
+                    img_width = img.get('width')
+                    img_height = img.get('height')
+                    
+                    # If dimensions are specified, check if it's avatar-sized
+                    if img_width and img_height:
+                        width = int(img_width) if img_width.isdigit() else 0
+                        height = int(img_height) if img_height.isdigit() else 0
+                        
+                        # Avatars are usually square-ish and not tiny
+                        if width > 50 and height > 50:
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                    else:
+                        # No dimensions, just add it
+                        if self.is_valid_avatar(full_url, img):
+                            image_urls.add(full_url)
+                            
+                except:
+                    pass
+        
+        # Filter and clean URLs
         filtered_urls = []
         for url in image_urls:
             # Skip data URIs and javascript
@@ -965,43 +868,39 @@ class EnhancedProfileCrawler:
                 continue
             
             # Remove query parameters that might cause issues
-            parsed = urlparse(url)
-            clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-            
-            # Check if it's likely an image
-            path_lower = parsed.path.lower()
-            has_image_ext = any(path_lower.endswith(ext) for ext in self.config.VALID_IMAGE_EXTENSIONS)
-            
-            # Also accept URLs without extensions if they're from known avatar hosts
-            is_known_avatar_host = any(
-                host in clean_url.lower() 
-                for host in ['avatars.githubusercontent.com', 'gravatar.com', 'avatar.trakt.tv']
-            )
-            
-            if has_image_ext or is_known_avatar_host:
-                filtered_urls.append(clean_url)
-        
-        return list(set(filtered_urls))[:5]  # Return up to 5 unique images
-    
-    def get_image_src(self, img_element) -> Optional[str]:
-        """Get image source from img element."""
-        # Try various attributes in order
-        for attr in ['src', 'data-src', 'data-original', 'srcset']:
-            src = img_element.get(attr)
-            if not src:
+            try:
+                parsed = urlparse(url)
+                clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                
+                # Check if it's likely an image
+                path_lower = parsed.path.lower()
+                has_image_ext = any(path_lower.endswith(ext) for ext in self.config.VALID_IMAGE_EXTENSIONS)
+                
+                # Also accept URLs without extensions if they're from known avatar hosts
+                is_known_avatar_host = any(
+                    host in clean_url.lower() 
+                    for host in [
+                        'avatars.githubusercontent.com', 
+                        'gravatar.com', 
+                        'avatar.trakt.tv',
+                        'ugc.production.linktr.ee',
+                        'cdn.discordapp.com',
+                        'pbs.twimg.com/profile_images',
+                        'instagram.fbom1-2.fna.fbcdn.net',
+                        'scontent.cdninstagram.com',
+                        'i.redd.it',
+                        'i.imgur.com',
+                        'public.onlyfans.com/files'  # ADD THIS LINE
+                    ]
+                )
+                
+                if has_image_ext or is_known_avatar_host:
+                    filtered_urls.append(clean_url)
+            except:
                 continue
-            
-            if attr == 'srcset':
-                # Take the first URL from srcset
-                parts = src.split(',')
-                if parts:
-                    first_part = parts[0].strip()
-                    url = first_part.split(' ')[0]
-                    return url if url else None
-            else:
-                return src
         
-        return None
+        # Return unique URLs, limited to reasonable number
+        return list(set(filtered_urls))[:10]  # Return up to 10 unique images
     
     def crawl_usernames(self, usernames: List[str], platforms: List[str] = None) -> Dict[str, List[Dict]]:
         """Crawl multiple usernames across platforms."""
@@ -1520,11 +1419,12 @@ def manage_templates_menu():
             
             print("\nAvailable check methods:")
             print("  status_code - Simple 200 OK check")
+            print("  universal_check - Universal profile check (recommended)")
             print("  github_check - GitHub specific check")
             print("  twitter_check - Twitter specific check")
-            print("  [and other check_methods from SiteCheckers class]")
+            print("  instagram_check - Instagram specific check")
             
-            check_method = input("Check method (default: status_code): ").strip() or "status_code"
+            check_method = input("Check method (default: universal_check): ").strip() or "universal_check"
             
             avatar_selector = input("Avatar CSS selector (optional): ").strip()
             
@@ -1844,8 +1744,9 @@ def main():
                         selected_platforms.append(item)
             
             if not selected_platforms:
-                # Default to a few platforms
-                selected_platforms = ["github", "reddit", "aboutme", "artstation"]
+                # Default to all enabled platforms from the JSON file
+                selected_platforms = enabled_platforms
+                print(f"⚠️  No platforms specified, using all {len(selected_platforms)} enabled platforms")
             
             print(f"\n🔍 Searching {len(usernames)} user(s) on {len(selected_platforms)} platform(s)...")
             
