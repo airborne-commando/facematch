@@ -47,9 +47,8 @@ class CrawlerConfig:
 def load_profile_templates(filename: str = "profile_templates.json") -> Dict[str, Any]:
     """
     Load profile templates from a JSON file.
-    If file doesn't exist, create it with default templates.
+    If file doesn't exist, return empty dict.
     """
-
     try:
         if os.path.exists(filename):
             with open(filename, 'r') as f:
@@ -57,16 +56,12 @@ def load_profile_templates(filename: str = "profile_templates.json") -> Dict[str
                 print(f"✅ Loaded {len(templates)} profile templates from {filename}")
                 return templates
         else:
-            # Create default templates file
-            with open(filename, 'w') as f:
-                json.dump(default_templates, f, indent=2)
-            print(f"📁 Created default profile templates file: {filename}")
-            print(f"   Edit this file to add/remove/modify platforms")
-            return default_templates
+            print(f"❌ Profile templates file not found: {filename}")
+            print("   Create a JSON file with platform configurations.")
+            return {}
     except Exception as e:
         print(f"❌ Error loading profile templates from {filename}: {e}")
-        print("🔄 Using default templates")
-        return default_templates
+        return {}
 
 
 def save_profile_templates(templates: Dict[str, Any], filename: str = "profile_templates.json"):
@@ -418,6 +413,96 @@ class SiteCheckers:
         # Default to True if we got a 200 and no "not found" indicators
         return True
 
+    @staticmethod
+    def fansfinder_check(response: requests.Response, username: str) -> bool:
+        """Check if OnlyFans profile exists via FansFinder."""
+        html = response.text.lower()
+        
+        # Check for specific indicators that the profile exists on FansFinder
+        existence_indicators = [
+            f'data-username="{username.lower()}"',  # Username in data attribute
+            f'onlyfans.com/{username.lower()}',  # Profile URL in page
+            "media.onlyfinder.com",  # OnlyFans content URLs via FansFinder
+            "og:title",  # Open Graph tags
+            "og:description",  # Open Graph tags
+            "user-profile profile-container",  # Profile container
+            "avatar-container",  # Avatar container
+            "about-profile",  # User about section
+            "profile-icon",  # Profile icons
+            "img-responsive",  # Responsive images
+        ]
+        
+        # Check for "profile not found" indicators
+        not_found_indicators = [
+            "page not found",
+            "profile not found",
+            "doesn't exist",
+            "does not exist",
+            "no longer active",
+            "user not found",
+            "couldn't find that profile",
+            "this profile is not available",
+            "no results found",
+            "no profiles found",
+            "0 results",
+        ]
+        
+        # If we see "not found" indicators, profile doesn't exist
+        for indicator in not_found_indicators:
+            if indicator in html:
+                return False
+        
+        # Check for existence indicators
+        for indicator in existence_indicators:
+            if indicator in html:
+                return True
+        
+        # Also check for specific patterns in the HTML structure
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Check for the specific FansFinder profile container
+        profile_containers = soup.find_all('div', {'class': re.compile(r'user-profile.*profile-container')})
+        if profile_containers:
+            for container in profile_containers:
+                # Check if username is in container's data attributes
+                data_username = container.get('data-username', '')
+                if username.lower() == data_username.lower():
+                    return True
+                
+                # Check for OnlyFans link in the container
+                onlyfans_links = container.find_all('a', href=True)
+                for link in onlyfans_links:
+                    if f'onlyfans.com/{username.lower()}' in link.get('href', '').lower():
+                        return True
+        
+        # Check for avatar images
+        avatar_images = soup.find_all('img', {'class': 'img-responsive'})
+        if avatar_images:
+            # Check if any image has the username in alt or title
+            for img in avatar_images:
+                alt_text = img.get('alt', '').lower()
+                title_text = img.get('title', '').lower()
+                if username.lower() in alt_text or username.lower() in title_text:
+                    return True
+        
+        # Check for profile headers with the username
+        profile_headers = soup.find_all(['h1', 'h2', 'h3', 'h4'])
+        for header in profile_headers:
+            if username.lower() in header.get_text().lower():
+                return True
+        
+        # Check response status
+        if response.status_code == 200:
+            # Additional check: look for FansFinder specific elements
+            if 'fansfinder' in response.url.lower():
+                # Check if we have meaningful content (not just a search page)
+                if len(response.text) > 5000:  # Profile pages tend to be larger
+                    # Look for profile-specific data
+                    if 'profile-container' in html or 'avatar-container' in html:
+                        return True
+        
+        return False
+
 
 # ================== ENHANCED PROFILE CRAWLER ==================
 
@@ -446,6 +531,24 @@ class EnhancedProfileCrawler:
         if self.ua:
             return self.ua.random
         return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    
+    def get_browser_like_headers(self) -> Dict[str, str]:
+        """Get headers that look like a real browser."""
+        return {
+            'User-Agent': self.get_random_user_agent(),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'TE': 'trailers',
+        }
     
     def check_rate_limit(self, domain: str):
         """Rate limiting by domain."""
@@ -559,8 +662,179 @@ class EnhancedProfileCrawler:
         
         return None
     
+    def extract_fansfinder_avatar(self, html: str, base_url: str, username: str) -> List[str]:
+        """Extract avatar from FansFinder profile page for specific username."""
+        soup = BeautifulSoup(html, 'html.parser')
+        image_urls = set()
+        
+        # Look for the specific avatar container structure
+        avatar_containers = soup.find_all('div', {'class': 'avatar-container'})
+        
+        for container in avatar_containers:
+            # Check if this container belongs to our username
+            # Look for data-username attribute in parent containers
+            parent = container.find_parent('div', {'data-username': username.lower()})
+            if parent:
+                # This container belongs to our username
+                images = container.find_all('img')
+                for img in images:
+                    src = self.get_image_src(img)
+                    if src:
+                        try:
+                            full_url = urljoin(base_url, src)
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                        except Exception as e:
+                            if self.config.VERBOSE:
+                                print(f"    [!] URL join error: {e}")
+        
+        # Also look for images with username patterns in URLs and attributes
+        for img in soup.find_all('img'):
+            src = self.get_image_src(img)
+            if not src:
+                continue
+            
+            src_lower = src.lower()
+            username_lower = username.lower()
+            
+            # Check if image URL contains the username
+            if username_lower in src_lower:
+                # Check for specific patterns
+                patterns = [
+                    f'{username_lower}-onlyfans.',
+                    f'{username_lower}_onlyfans.',
+                    f'/{username_lower}/',
+                    f'/{username_lower}-',
+                ]
+                
+                for pattern in patterns:
+                    if pattern in src_lower:
+                        try:
+                            full_url = urljoin(base_url, src)
+                            if self.is_valid_avatar(full_url, img):
+                                image_urls.add(full_url)
+                                break
+                        except Exception as e:
+                            if self.config.VERBOSE:
+                                print(f"    [!] URL join error: {e}")
+            
+            # Check alt and title attributes
+            alt = img.get('alt', '').lower()
+            title = img.get('title', '').lower()
+            
+            # If alt or title contains the username and "onlyfans"
+            if username_lower in alt and 'onlyfans' in alt:
+                try:
+                    full_url = urljoin(base_url, src)
+                    if self.is_valid_avatar(full_url, img):
+                        image_urls.add(full_url)
+                except Exception as e:
+                    if self.config.VERBOSE:
+                        print(f"    [!] URL join error: {e}")
+            
+            if username_lower in title and 'onlyfans' in title:
+                try:
+                    full_url = urljoin(base_url, src)
+                    if self.is_valid_avatar(full_url, img):
+                        image_urls.add(full_url)
+                except Exception as e:
+                    if self.config.VERBOSE:
+                        print(f"    [!] URL join error: {e}")
+        
+        # If we still don't have images, look for the most likely profile image
+        if not image_urls:
+            # Look for images with img-responsive class
+            for img in soup.find_all('img', {'class': 'img-responsive'}):
+                src = self.get_image_src(img)
+                if src:
+                    try:
+                        full_url = urljoin(base_url, src)
+                        if self.is_valid_avatar(full_url, img):
+                            image_urls.add(full_url)
+                    except Exception as e:
+                        if self.config.VERBOSE:
+                            print(f"    [!] URL join error: {e}")
+        
+        return list(image_urls)
+    
+    def check_profile_with_cf_bypass(self, url: str, platform: str, username: str) -> Dict[str, Any]:
+        """Check profile with Cloudflare bypass attempts."""
+        domain = urlparse(url).netloc
+        self.check_rate_limit(domain)
+        
+        time.sleep(random.uniform(*self.config.DELAY))
+        
+        try:
+            headers = self.get_browser_like_headers()
+            
+            response = self.session.get(
+                url,
+                headers=headers,
+                timeout=self.config.TIMEOUT,
+                allow_redirects=True,
+                stream=False
+            )
+            
+            # For OnlyFans specifically, use fansfinder_check
+            exists = False
+            if platform == "onlyfans":
+                exists = self.checkers.fansfinder_check(response, username)
+            else:
+                # Use standard check for other platforms
+                platform_config = self.profile_templates.get(platform, {})
+                check_method = platform_config.get("check_method", "status_code")
+                
+                if check_method == "status_code":
+                    exists = response.status_code == 200
+                else:
+                    # Use the appropriate checker method
+                    check_method_name = f"{check_method}"
+                    if hasattr(self.checkers, check_method_name):
+                        checker_func = getattr(self.checkers, check_method_name)
+                        exists = checker_func(response, username)
+            
+            # Extract images if profile exists
+            image_urls = []
+            if exists:
+                platform_config = self.profile_templates.get(platform, {})
+                if platform == "onlyfans":
+                    # Use the updated method that takes username
+                    image_urls = self.extract_fansfinder_avatar(response.text, url, username)
+                else:
+                    image_urls = self.extract_images(response.text, url, platform_config)
+            
+            result = {
+                "exists": exists,
+                "status_code": response.status_code,
+                "url": response.url,
+                "image_urls": image_urls,
+                "error": None,
+                "platform": platform,
+                "username": username,
+                "final_url": response.url,
+                "content_length": len(response.text),
+                "cf_protected": "cf-ray" in response.headers  # Indicate if Cloudflare was detected
+            }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "exists": False,
+                "status_code": 0,
+                "url": url,
+                "image_urls": [],
+                "error": str(e),
+                "platform": platform,
+                "username": username
+            }
+    
     def check_profile(self, url: str, platform: str, username: str) -> Dict[str, Any]:
         """Check if a profile exists with site-specific logic."""
+        # Use special handling for OnlyFans (using FansFinder)
+        if platform == "onlyfans":
+            return self.check_profile_with_cf_bypass(url, platform, username)
+        
         domain = urlparse(url).netloc
         self.check_rate_limit(domain)
         
@@ -616,6 +890,8 @@ class EnhancedProfileCrawler:
                 exists = self.checkers.gitlab_check(response, username)
             elif check_method == "universal_check":
                 exists = self.checkers.universal_check(response, username)
+            elif check_method == "fansfinder_check":
+                exists = self.checkers.fansfinder_check(response, username)
             else:
                 # Default: status code 200
                 exists = response.status_code == 200
@@ -623,7 +899,7 @@ class EnhancedProfileCrawler:
             # Extract images if profile exists
             image_urls = []
             if exists:
-                image_urls = self.extract_images(response.text, url, platform_config)
+                image_urls = self.extract_images(response.text, url, platform_config, username)  # Added username parameter
             
             result = {
                 "exists": exists,
@@ -670,7 +946,7 @@ class EnhancedProfileCrawler:
                 "username": username
             }
     
-    def extract_images(self, html: str, base_url: str, platform_config: Dict) -> List[str]:
+    def extract_images(self, html: str, base_url: str, platform_config: Dict, username: str = None) -> List[str]:
         """Universal image extraction that works with any site."""
         soup = BeautifulSoup(html, 'html.parser')
         image_urls = set()
@@ -678,6 +954,11 @@ class EnhancedProfileCrawler:
         # Get platform name for specific handling if needed
         platform_name = platform_config.get("platform", "")
         platform_url = platform_config.get("url", "")
+        
+        # Special handling for OnlyFans/FansFinder
+        if platform_name == "onlyfans" and username:
+            fansfinder_images = self.extract_fansfinder_avatar(html, base_url, username)
+            image_urls.update(fansfinder_images)
         
         # Phase 1: Try platform-specific selector first
         avatar_selector = platform_config.get("avatar_selector", "")
@@ -813,6 +1094,7 @@ class EnhancedProfileCrawler:
                 r'instagram\.fbom.*\.fna\.fbcdn\.net\/.*',  # Instagram
                 r'i\.redd\.it\/.*',  # Reddit
                 r'i\.imgur\.com\/.*',  # Imgur
+                r'media\.onlyfinder\.com\/.*',  # FansFinder/OnlyFans CDN
             ]
             
             for img in soup.find_all('img'):
@@ -876,21 +1158,45 @@ class EnhancedProfileCrawler:
                 path_lower = parsed.path.lower()
                 has_image_ext = any(path_lower.endswith(ext) for ext in self.config.VALID_IMAGE_EXTENSIONS)
                 
-                # Also accept URLs without extensions if they're from known avatar hosts
+                # Expanded list with more mainstream and frequently used hosts
                 is_known_avatar_host = any(
                     host in clean_url.lower() 
                     for host in [
-                        'avatars.githubusercontent.com', 
-                        'gravatar.com', 
-                        'avatar.trakt.tv',
-                        'ugc.production.linktr.ee',
-                        'cdn.discordapp.com',
-                        'pbs.twimg.com/profile_images',
-                        'instagram.fbom1-2.fna.fbcdn.net',
-                        'scontent.cdninstagram.com',
-                        'i.redd.it',
-                        'i.imgur.com',
-                        'public.onlyfans.com/files'  # ADD THIS LINE
+                        'avatars.githubusercontent.com',      # GitHub
+                        'gravatar.com',                      # Gravatar
+                        'avatar.trakt.tv',                   # Trakt
+                        'ugc.production.linktr.ee',          # Linktree
+                        'cdn.discordapp.com',                # Discord
+                        'pbs.twimg.com/profile_images',       # Twitter/X
+                        'instagram.fbom1-2.fna.fbcdn.net',   # Instagram (Facebook CDN)
+                        'scontent.cdninstagram.com',         # Instagram
+                        'i.redd.it',                         # Reddit
+                        'i.imgur.com',                       # Imgur
+                        'public.onlyfans.com/files',         # OnlyFans
+                        'media.onlyfinder.com',              # FansFinder/OnlyFans CDN
+                        # Additional mainstream hosts
+                        'platform.twitter.com',              # Twitter CDN variant
+                        'abs.twimg.com',                      # Twitter avatars
+                        'lh3.googleusercontent.com',          # Google/YouTube
+                        'yt3.ggpht.com',                     # YouTube
+                        'a0.muscdn.com',                     # SoundCloud
+                        'i1.sndcdn.com',                     # SoundCloud
+                        'a.pomf.lol',                        # Pomf.cat (meme culture)
+                        'pbs.twimg.com/media',               # Twitter media (profile pics often here)
+                        'via.placeholder.com',               # Common placeholder service
+                        'ui-avatars.com',                    # Generated avatars
+                        'robohash.org',                      # Robot avatars
+                        'identicons.github.com',             # GitHub identicons
+                        'secure.gravatar.com/avatar',        # Gravatar secure
+                        'steamcdn-a.akamaihd.net',           # Steam
+                        'steamuserimages-a.akamaihd.net',    # Steam
+                        'avatar-management--avatars.us-west-2',  # Twitch
+                        'static-cdn.jtvnw.net',              # Twitch
+                        'tiktokcdn.com',                     # TikTok
+                        'byteimg.com',                       # TikTok CDN
+                        'ssl-profile-images-cdn.viago.co',   # LinkedIn variant
+                        'media.licdn.com/dms/image',          # LinkedIn
+                        'https://media.licdn.com/dms/image/v2/'
                     ]
                 )
                 
@@ -1354,6 +1660,228 @@ https://example.com/face2.jpg,jane_smith,instagram
     print("Edit this file with your URIs and usernames, then use option 7.")
 
 
+# ================== NEW FUNCTION: UPLOAD IMAGE AND SEARCH PLATFORMS ==================
+
+def search_platforms_by_face(face_system, crawler):
+    """Search selected platforms using a face image."""
+    print("\n📸 Upload Image and Search Platforms")
+    print("-" * 40)
+    
+    # Get image
+    uri = input("Enter image path or URL: ").strip()
+    if not uri:
+        print("❌ No image provided")
+        return
+    
+    # Extract face from image
+    print("🔍 Extracting face from image...")
+    target_bytes = get_image_bytes(uri)
+    if not target_bytes:
+        print("❌ Could not load image")
+        return
+    
+    target_encoding = compute_face_encoding(target_bytes)
+    if target_encoding is None:
+        print("❌ No face detected in image")
+        return
+    
+    print("✅ Face encoding extracted")
+    
+    # Ask if they want to search with a specific username
+    use_username = input("\nDo you want to search with a specific username? (y/N): ").strip().lower()
+    username_to_search = None
+    
+    if use_username == 'y':
+        username_to_search = input("Enter username to search: ").strip()
+        if username_to_search:
+            print(f"🔍 Will search for username: {username_to_search}")
+    
+    # Show available platforms
+    templates = load_profile_templates()
+    enabled_platforms = get_enabled_platforms(templates)
+    categories = get_platforms_by_category(templates)
+    
+    if not enabled_platforms:
+        print("❌ No platforms enabled in profile_templates.json")
+        return
+    
+    print(f"\n📋 Available platforms ({len(enabled_platforms)} enabled):")
+    for category, platforms in categories.items():
+        print(f"\n  {category}:")
+        for platform in sorted(platforms):
+            config = templates[platform]
+            url_template = config.get("url", "No URL")
+            print(f"    {platform:20} - {url_template}")
+    
+    # Select platforms
+    platform_input = input("\nEnter platforms to search (comma-separated, or 'all'): ").strip().lower()
+    
+    if platform_input == 'all':
+        selected_platforms = enabled_platforms
+    else:
+        selected_platforms = []
+        for item in platform_input.split(','):
+            item = item.strip()
+            if item in enabled_platforms:
+                selected_platforms.append(item)
+    
+    if not selected_platforms:
+        print("⚠️  No platforms selected")
+        return
+    
+    print(f"\n🔍 Will search {len(selected_platforms)} platform(s)")
+    
+    # Search logic
+    results = []
+    
+    if username_to_search:
+        # Search specific username on selected platforms
+        print(f"\n🔎 Searching username '{username_to_search}' on {len(selected_platforms)} platforms...")
+        
+        crawl_results = crawler.crawl_usernames([username_to_search], selected_platforms)
+        
+        # Check if any profiles exist
+        user_results = crawl_results.get(username_to_search, [])
+        existing_profiles = [r for r in user_results if r["exists"]]
+        
+        if existing_profiles:
+            print(f"\n✅ Found {len(existing_profiles)} profile(s) for '{username_to_search}':")
+            
+            for result in existing_profiles:
+                print(f"\n  Platform: {result['platform']}")
+                print(f"  URL: {result['url']}")
+                print(f"  Images found: {len(result['image_urls'])}")
+                
+                # Compare face with images from profile
+                if result["image_urls"]:
+                    print("  Comparing faces from profile images...")
+                    
+                    best_similarity = 0
+                    best_match_url = None
+                    
+                    for img_url in result["image_urls"][:3]:  # Check first 3 images
+                        try:
+                            img_bytes = get_image_bytes(img_url)
+                            if img_bytes:
+                                img_encoding = compute_face_encoding(img_bytes)
+                                if img_encoding is not None:
+                                    distance = float(face_recognition.face_distance([target_encoding], img_encoding)[0])
+                                    similarity = max(0.0, 1.0 - min(distance, 1.0))
+                                    
+                                    if similarity > best_similarity:
+                                        best_similarity = similarity
+                                        best_match_url = img_url
+                        except Exception:
+                            continue
+                    
+                    if best_similarity > 0:
+                        print(f"  🎯 Best face match: {best_similarity:.3f}")
+                        if best_similarity > 0.6:
+                            print(f"  ✅ LIKELY SAME PERSON!")
+                        
+                        results.append({
+                            "platform": result["platform"],
+                            "url": result["url"],
+                            "username": username_to_search,
+                            "similarity": best_similarity,
+                            "match_url": best_match_url,
+                            "type": "username_search"
+                        })
+                else:
+                    print("  ⚠️ No images to compare")
+        else:
+            print(f"❌ No profiles found for '{username_to_search}' on selected platforms")
+    
+    else:
+        # First check existing face database
+        print("\n🔍 Checking existing face database...")
+        matches = face_system.search_faces(target_encoding, threshold=0.6, top_k=5)
+        
+        if matches:
+            print(f"🎯 Found {len([m for m in matches if m['match']])} potential matches in database:")
+            for match in matches[:3]:  # Show top 3
+                if match['match']:
+                    print(f"  👤 {match['username']} on {match['platform']} - similarity: {match['similarity']:.3f}")
+            
+            # Ask if they want to search for these usernames
+            search_existing = input("\nSearch platforms for these usernames? (y/N): ").strip().lower()
+            
+            if search_existing == 'y':
+                usernames_to_search = list(set([m['username'] for m in matches if m['match']]))[:5]
+                print(f"🔍 Searching for {len(usernames_to_search)} username(s): {', '.join(usernames_to_search)}")
+                
+                crawl_results = crawler.crawl_usernames(usernames_to_search, selected_platforms)
+                
+                for username in usernames_to_search:
+                    user_results = crawl_results.get(username, [])
+                    for result in user_results:
+                        if result["exists"]:
+                            results.append({
+                                "platform": result["platform"],
+                                "url": result["url"],
+                                "username": username,
+                                "type": "database_match_search"
+                            })
+        
+        # Option to do a reverse image search style lookup
+        print("\n🔄 Alternative: Check popular platforms for matching faces")
+        print("   (This will crawl and compare faces from profiles)")
+        
+        do_crawl = input("\nCrawl and compare faces from profiles? (y/N): ").strip().lower()
+        
+        if do_crawl == 'y':
+            # For demo, we'd need to implement a broader search
+            # For now, we'll show a message
+            print("\n⚠️  Advanced face-based platform crawling would require:")
+            print("   1. Generating common usernames from face similarity")
+            print("   2. Searching those usernames on platforms")
+            print("   3. Comparing faces from found profiles")
+            print("\n💡 Tip: Use option 1 with suspected usernames first")
+    
+    # Display results
+    if results:
+        print(f"\n📊 Search Results ({len(results)}):")
+        print("=" * 60)
+        
+        for i, result in enumerate(results, 1):
+            print(f"\n{i}. Platform: {result['platform']}")
+            print(f"   Username: {result['username']}")
+            print(f"   URL: {result['url']}")
+            print(f"   Type: {result['type']}")
+            
+            if 'similarity' in result:
+                print(f"   Face Similarity: {result['similarity']:.3f}")
+                if result['similarity'] > 0.7:
+                    print("   🎯 HIGH CONFIDENCE MATCH")
+                elif result['similarity'] > 0.5:
+                    print("   🔍 Possible match")
+            
+            if 'match_url' in result:
+                print(f"   Match Image: {result['match_url'][:80]}...")
+    else:
+        print("\n❌ No results found")
+    
+    # Offer to save the face to database
+    if target_encoding is not None:
+        save_face = input("\n💾 Save this face to database for future searches? (y/N): ").strip().lower()
+        if save_face == 'y':
+            username = input("Enter username for this face (or leave blank for 'unknown'): ").strip() or "unknown"
+            platform = input("Enter source platform (or leave blank for 'upload'): ").strip() or "upload"
+            
+            face_record = {
+                "username": username,
+                "platform": platform,
+                "page_url": uri if uri.startswith('http') else f"file://{os.path.abspath(uri)}",
+                "image_url": uri,
+                "encoding": target_encoding.tolist(),
+                "timestamp": time.time(),
+                "source": "image_upload_search"
+            }
+            
+            face_system.faces.append(face_record)
+            print(f"✅ Face saved to database as '{username}'")
+
+
 # ================== TEMPLATE MANAGEMENT FUNCTIONS ==================
 
 def manage_templates_menu():
@@ -1423,6 +1951,7 @@ def manage_templates_menu():
             print("  github_check - GitHub specific check")
             print("  twitter_check - Twitter specific check")
             print("  instagram_check - Instagram specific check")
+            print("  fansfinder_check - OnlyFans via FansFinder check")
             
             check_method = input("Check method (default: universal_check): ").strip() or "universal_check"
             
@@ -1695,24 +2224,25 @@ def main():
     while True:
         print("\n" + "=" * 60)
         print("1. Search for usernames")
-        print("2. Test specific profile")
-        print("3. Run known profile tests")
-        print("4. Compare target face (from local image)")
-        print("5. Compare face from URL/URI (NEW)")
-        print("6. Extract faces from webpage (NEW)")
-        print("7. Batch compare from file (NEW)")
-        print("8. Create batch template (NEW)")
-        print("9. Show statistics")
-        print("10. Manage profile templates")
-        print("11. Save face index")
-        print("12. Load face index")
-        print("13. Clear face index")
-        print("14. Exit")
+        print("2. Upload image and search selected platforms (NEW)")
+        print("3. Test specific profile")
+        print("4. Run known profile tests")
+        print("5. Compare target face (from local image)")
+        print("6. Compare face from URL/URI")
+        print("7. Extract faces from webpage")
+        print("8. Batch compare from file")
+        print("9. Create batch template")
+        print("10. Show statistics")
+        print("11. Manage profile templates")
+        print("12. Save face index")
+        print("13. Load face index")
+        print("14. Clear face index")
+        print("15. Exit")
         
-        choice = input("\nSelect option (1-14): ").strip()
+        choice = input("\nSelect option (1-15): ").strip()
         
         if choice == "1":
-            # Search usernames
+            # Search usernames (existing code)
             usernames_input = input("Enter usernames (comma-separated): ").strip()
             if not usernames_input:
                 continue
@@ -1781,12 +2311,16 @@ def main():
                     face_system.save_index()
         
         elif choice == "2":
-            test_specific_profile()
+            # NEW: Upload image and search selected platforms
+            search_platforms_by_face(face_system, crawler)
         
         elif choice == "3":
-            test_known_profiles()
+            test_specific_profile()
         
         elif choice == "4":
+            test_known_profiles()
+        
+        elif choice == "5":
             if not face_system.faces:
                 print("❌ No faces in index")
                 continue
@@ -1830,8 +2364,8 @@ def main():
                 if match['similarity'] > 0.7:
                     print(f"     🎯 Strong match!")
         
-        elif choice == "5":
-            # NEW: Compare face from URL/URI
+        elif choice == "6":
+            # Compare face from URL/URI
             uri = input("Enter image URL or local file path: ").strip()
             if not uri:
                 continue
@@ -1851,8 +2385,8 @@ def main():
             else:
                 compare_face_from_uri(face_system, uri)
         
-        elif choice == "6":
-            # NEW: Extract faces from webpage
+        elif choice == "7":
+            # Extract faces from webpage
             url = input("Enter webpage URL: ").strip()
             if not url:
                 continue
@@ -1891,19 +2425,19 @@ def main():
                     else:
                         print("❌ Username required")
         
-        elif choice == "7":
-            # NEW: Batch compare from file
+        elif choice == "8":
+            # Batch compare from file
             filename = input("Enter filename with URIs and usernames (CSV format): ").strip()
             if filename and os.path.exists(filename):
                 batch_compare_from_file(face_system, filename)
             else:
                 print("❌ File not found")
         
-        elif choice == "8":
-            # NEW: Create batch template
+        elif choice == "9":
+            # Create batch template
             create_uri_batch_file()
         
-        elif choice == "9":
+        elif choice == "10":
             print(f"\n📊 Statistics:")
             print(f"  Total faces: {len(face_system.faces)}")
             
@@ -1928,24 +2462,24 @@ def main():
                 for source, count in sorted(sources.items(), key=lambda x: x[1], reverse=True):
                     print(f"    {source}: {count}")
         
-        elif choice == "10":
-            manage_templates_menu()
-        
         elif choice == "11":
-            filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
-            face_system.save_index(filename)
+            manage_templates_menu()
         
         elif choice == "12":
             filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
-            face_system.load_index(filename)
+            face_system.save_index(filename)
         
         elif choice == "13":
+            filename = input("Filename (default: face_index.json): ").strip() or "face_index.json"
+            face_system.load_index(filename)
+        
+        elif choice == "14":
             confirm = input("Clear all indexed faces? (y/N): ").strip().lower()
             if confirm == 'y':
                 face_system.faces = []
                 print("✅ Face index cleared")
         
-        elif choice == "14":
+        elif choice == "15":
             print("👋 Goodbye!")
             break
 
