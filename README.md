@@ -42,4 +42,4 @@ Simply run `hash_advanced.py` and follow the prompts.
 Feel free to conribute and fork for the web-list directly into the python script so it may use all the sites, excluding API's perhaps?
 
 
-Also note that there can be false positives so don't use this alone and that some sites may not work for some reason (onlyfans) when extracting a face from a user.
+Also note that there can be false positives so don't use this alone and that some sites may not work for some reason.
