@@ -7,7 +7,7 @@ Also use this guide as well [OPSEC OSINT Tools](https://github.com/airborne-comm
 ***Requirenents***
 
 * A GPU
-* Python 3+ / pip
+* Python 3.10 / pip
 * cmake
 
 # Install
